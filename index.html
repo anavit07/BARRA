@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Barra — CNC</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1b2e;
+    --bg2: #112240;
+    --surface: #ffffff;
+    --surface2: #f4f6f9;
+    --border: #dce3ed;
+    --blue-btn: #1e4db7;
+    --blue-btn-hover: #1741a0;
+    --blue-light: #e8eef8;
+    --accent2: #16a34a;
+    --danger: #dc2626;
+    --text-dark: #0f172a;
+    --text-mid: #334155;
+    --text-muted: #64748b;
+    --text-label: #94a3b8;
+    --header-muted: #7c93b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text-dark); font-family: 'Inter', sans-serif; min-height: 100vh; }
+  .app-header { background: var(--bg2); padding: 20px 20px 0; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .header-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: var(--header-muted); margin-bottom: 4px; }
+  .header-title { font-size: 26px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+  .header-sub { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--header-muted); margin-top: 4px; }
+  .header-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .badge-blue { background: var(--blue-btn); color: #fff; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px; }
+  .badge-date { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--header-muted); }
+  .params-row { display: flex; gap: 20px; padding: 12px 0; flex-wrap: wrap; }
+  .param-key { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--header-muted); }
+  .param-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #e2e8f0; }
+  .tabs-bar { display: flex; overflow-x: auto; }
+  .tab { padding: 12px 18px; background: transparent; border: none; color: var(--header-muted); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: 0.1em; text-transform: uppercase; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
+  .tab.active { color: #fff; border-bottom: 2px solid var(--blue-btn); background: rgba(255,255,255,0.04); }
+  .app-body { padding: 20px 16px 80px; max-width: 800px; margin: 0 auto; }
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeUp 0.2s ease; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  .card { background: var(--surface); border-radius: 14px; border: 1px solid var(--border); padding: 20px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .card-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: var(--text-muted); margin-bottom: 16px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); }
+  input { background: var(--surface2); border: 1.5px solid var(--border); color: var(--text-dark); font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 500; padding: 11px 13px; border-radius: 8px; outline: none; transition: border-color 0.15s; width: 100%; }
+  input:focus { border-color: var(--blue-btn); background: #fff; }
+  input::placeholder { color: var(--text-label); font-size: 13px; font-weight: 400; }
+  .result-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+  .r-card { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+  .r-card.hl { background: var(--blue-light); border-color: var(--blue-btn); }
+  .r-card.green { background: #f0fdf4; border-color: #86efac; }
+  .r-val { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--text-dark); line-height: 1; margin-bottom: 5px; }
+  .r-card.hl .r-val { color: var(--blue-btn); }
+  .r-card.green .r-val { color: var(--accent2); }
+  .r-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); }
+  .security-note { background: #fffbeb; border: 1.5px solid #fcd34d; border-radius: 8px; padding: 11px 14px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #92400e; font-weight: 600; margin-bottom: 14px; }
+  .step-list { display: flex; flex-direction: column; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+  .step-item { display: flex; align-items: flex-start; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+  .step-item:last-child { border-bottom: none; }
+  .step-item.hl { background: var(--blue-light); }
+  .step-num { min-width: 22px; height: 22px; border-radius: 50%; background: var(--blue-btn); color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-key { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 2px; }
+  .step-formula { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-mid); }
+  .btn { padding: 13px 22px; border-radius: 10px; border: none; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+  .btn-primary { background: var(--blue-btn); color: #fff; width: 100%; font-size: 14px; padding: 15px; border-radius: 10px; }
+  .btn-primary:hover { background: var(--blue-btn-hover); }
+  .btn-secondary { background: var(--surface2); color: var(--text-mid); border: 1.5px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--blue-btn); color: var(--blue-btn); }
+  .btn-danger { background: #fff1f2; color: var(--danger); border: 1.5px solid #fecaca; padding: 6px 11px; font-size: 11px; border-radius: 7px; }
+  .btn-row { display: flex; gap: 10px; margin-top: 12px; }
+  .empty-state { text-align: center; padding: 44px 20px; color: var(--text-muted); }
+  .empty-state .icon { font-size: 32px; margin-bottom: 10px; }
+  .hist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .hist-count { font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 20px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { border-bottom: 2px solid var(--border); }
+  th { font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); font-weight: 700; padding: 8px 12px; text-align: left; white-space: nowrap; }
+  td { padding: 12px 12px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-mid); white-space: nowrap; }
+  tr:hover td { background: var(--surface2); }
+  td.code { color: var(--blue-btn); font-weight: 700; }
+  td.barras { color: var(--accent2); font-weight: 700; }
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(13,27,46,0.75); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.35); animation: fadeUp 0.2s ease; }
+  .modal-title { font-size: 16px; font-weight: 800; color: var(--text-dark); margin-bottom: 18px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+  @media (max-width:520px) { .form-grid { grid-template-columns: 1fr; } .result-row { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="app-header">
+  <div class="header-top">
+    <div>
+      <div class="header-label">Controle de Produção</div>
+      <div class="header-title">Controle de Barra</div>
+      <div class="header-sub">Star SR32J-III · RB0515 · Líder: Alex</div>
+    </div>
+    <div class="header-badges">
+      <div class="badge-date" id="header-date"></div>
+      <div class="badge-blue">Ana</div>
+    </div>
+  </div>
+  <div class="params-row">
+    <div><div class="param-key">Barra Total</div><div class="param-val">3.000 mm</div></div>
+    <div><div class="param-key">Sobra Seg.</div><div class="param-val">300 mm</div></div>
+    <div><div class="param-key">Útil</div><div class="param-val">2.700 mm</div></div>
+  </div>
+  <div class="tabs-bar">
+    <button class="tab active" onclick="setTab('calc',this)">⚙️ Calcular OP</button>
+    <button class="tab" onclick="setTab('hist',this)">📋 Histórico</button>
+  </div>
+</div>
+
+<div class="app-body">
+
+  <div id="panel-calc" class="panel active">
+    <div class="card">
+      <div class="card-label">Dados da OP</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Código da Peça</label><input type="text" id="codigo" placeholder="Ex: SP-0423-A" oninput="calcular()"></div>
+        <div class="form-group"><label>Comprimento (mm)</label><input type="number" id="comp" placeholder="Ex: 45" min="1" oninput="calcular()"></div>
+        <div class="form-group"><label>Quantidade da OP</label><input type="number" id="qtd" placeholder="Ex: 500" min="1" oninput="calcular()"></div>
+        <div class="form-group"><label>Peso do Toco (g)</label><input type="number" id="toco" placeholder="Pesar 1 toco" min="0" step="0.1" oninput="calcular()"></div>
+      </div>
+    </div>
+
+    <div id="result-card" style="display:none;">
+      <div class="card">
+        <div class="card-label">Resultado</div>
+        <div class="result-row">
+          <div class="r-card"><div class="r-val" id="r-pcs-barra">—</div><div class="r-lbl">Peças / Barra</div></div>
+          <div class="r-card"><div class="r-val" id="r-barras-op">—</div><div class="r-lbl">Barras da OP</div></div>
+          <div class="r-card hl"><div class="r-val" id="r-barras-total">—</div><div class="r-lbl">Total c/ Seg.</div></div>
+        </div>
+        <div class="security-note">⚠️ +1 barra de segurança — barra pode estar pela metade no início da OP</div>
+        <div class="result-row" style="grid-template-columns:1fr;">
+          <div class="r-card green" id="r-sobra-card"><div class="r-val" id="r-sobra">—</div><div class="r-lbl">Sobra Total (kg)</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Como foi calculado</div>
+        <div class="step-list" id="formula-steps"></div>
+        <button class="btn btn-primary" onclick="salvarOP()">✓ Salvar OP no Histórico</button>
+        <div class="btn-row"><button class="btn btn-secondary" onclick="limparForm()">Limpar campos</button></div>
+      </div>
+    </div>
+
+    <div class="card" id="empty-calc">
+      <div class="empty-state"><div class="icon">📐</div><p>Preencha os dados acima para calcular</p></div>
+    </div>
+  </div>
+
+  <div id="panel-hist" class="panel">
+    <div class="card">
+      <div class="hist-header">
+        <div class="card-label" style="margin-bottom:0;">Registro de OPs</div>
+        <div class="hist-count" id="hist-count">0 registros</div>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Data</th><th>Código</th><th>Comp</th><th>Qtd</th><th>Pcs/Barra</th><th>Barras</th><th>Toco</th><th>Sobra</th><th></th></tr></thead>
+        <tbody id="hist-body"></tbody></table>
+      </div>
+      <div id="empty-hist" class="empty-state"><div class="icon">📭</div><p>Nenhuma OP registrada ainda.</p></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">✏️ Editar Registro</div>
+    <input type="hidden" id="edit-idx">
+    <div class="form-grid">
+      <div class="form-group"><label>Código</label><input type="text" id="edit-codigo"></div>
+      <div class="form-group"><label>Comprimento (mm)</label><input type="number" id="edit-comp"></div>
+      <div class="form-group"><label>Quantidade</label><input type="number" id="edit-qtd"></div>
+      <div class="form-group"><label>Toco (g)</label><input type="number" id="edit-toco"></div>
+      <div class="form-group full"><label>Data</label><input type="date" id="edit-data"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" style="width:auto;padding:12px 22px;" onclick="salvarEdicao()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SK = 'cnc_barra_ops';
+  document.getElementById('header-date').textContent = new Date().toLocaleDateString('pt-BR');
+  function getOPs() { try { return JSON.parse(localStorage.getItem(SK))||[]; } catch { return []; } }
+  function saveOPs(o) { localStorage.setItem(SK, JSON.stringify(o)); }
+
+  function setTab(tab, el) {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-'+tab).classList.add('active');
+    if(tab==='hist') renderHist();
+  }
+
+  function calcular() {
+    const comp=parseFloat(document.getElementById('comp').value);
+    const qtd=parseFloat(document.getElementById('qtd').value);
+    const toco=parseFloat(document.getElementById('toco').value);
+    const ok=comp>0&&qtd>0;
+    document.getElementById('result-card').style.display=ok?'block':'none';
+    document.getElementById('empty-calc').style.display=ok?'none':'block';
+    if(!ok) return;
+    const pcsBarra=Math.floor(2700/comp);
+    const barrasOP=Math.ceil(qtd/pcsBarra);
+    const barrasTotal=barrasOP+1;
+    const sobraKg=toco>0?((toco*barrasTotal)/1000).toFixed(3):null;
+    document.getElementById('r-pcs-barra').textContent=pcsBarra;
+    document.getElementById('r-barras-op').textContent=barrasOP;
+    document.getElementById('r-barras-total').textContent=barrasTotal;
+    document.getElementById('r-sobra').textContent=sobraKg?sobraKg+' kg':'—';
+    const steps=[
+      {n:1,key:'Comprimento útil da barra',f:'2.700 mm (3.000 − 300 de segurança)',hl:false},
+      {n:2,key:'Peças que cabem por barra',f:`2.700 ÷ ${comp} mm = <b>${pcsBarra} peças/barra</b>`,hl:false},
+      {n:3,key:'Barras necessárias para a OP',f:`${qtd} pcs ÷ ${pcsBarra} = <b>${barrasOP} barras</b>`,hl:false},
+      {n:4,key:'Barra de segurança (+1)',f:`${barrasOP} + 1 = <b style="color:var(--blue-btn)">${barrasTotal} barras no total</b>`,hl:true},
+      toco>0
+        ?{n:5,key:'Sobra total de material',f:`${toco} g × ${barrasTotal} = <b style="color:var(--accent2)">${sobraKg} kg</b>`,hl:false}
+        :{n:5,key:'Sobra total de material',f:'Informe o peso do toco para calcular',hl:false,muted:true}
+    ];
+    document.getElementById('formula-steps').innerHTML=steps.map(s=>`
+      <div class="step-item${s.hl?' hl':''}">
+        <div class="step-num">${s.n}</div>
+        <div>
+          <div class="step-key">${s.key}</div>
+          <div class="step-formula" style="${s.muted?'color:var(--text-label)':''}">${s.f}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function salvarOP() {
+    const codigo=document.getElementById('codigo').value.trim();
+    const comp=parseFloat(document.getElementById('comp').value);
+    const qtd=parseFloat(document.getElementById('qtd').value);
+    const toco=parseFloat(document.getElementById('toco').value)||0;
+    if(!codigo){alert('Informe o código da peça.');return;}
+    if(!comp||!qtd){alert('Preencha comprimento e quantidade.');return;}
+    const pcsBarra=Math.floor(2700/comp);
+    const barrasTotal=Math.ceil(qtd/pcsBarra)+1;
+    const sobraKg=toco>0?((toco*barrasTotal)/1000).toFixed(3):'—';
+    const ops=getOPs();
+    ops.unshift({data:new Date().toISOString().split('T')[0],codigo,comp,qtd,pcsBarra,barrasTotal,toco,sobraKg});
+    saveOPs(ops); limparForm(); alert('✅ OP salva no histórico!');
+  }
+
+  function limparForm() {
+    ['codigo','comp','qtd','toco'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('result-card').style.display='none';
+    document.getElementById('empty-calc').style.display='block';
+  }
+
+  function renderHist() {
+    const ops=getOPs();
+    const tbody=document.getElementById('hist-body');
+    document.getElementById('hist-count').textContent=ops.length+' registro'+(ops.length!==1?'s':'');
+    if(!ops.length){tbody.innerHTML='';document.getElementById('empty-hist').style.display='block';return;}
+    document.getElementById('empty-hist').style.display='none';
+    tbody.innerHTML=ops.map((op,i)=>`<tr>
+      <td>${op.data||'—'}</td><td class="code">${op.codigo}</td><td>${op.comp} mm</td>
+      <td>${op.qtd}</td><td>${op.pcsBarra}</td><td class="barras">${op.barrasTotal}</td>
+      <td>${op.toco>0?op.toco+' g':'—'}</td><td>${op.sobraKg!=='—'?op.sobraKg+' kg':'—'}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-secondary" style="padding:6px 10px;font-size:11px;" onclick="abrirModal(${i})">✏️</button>
+        <button class="btn btn-danger" onclick="deletarOP(${i})">🗑</button>
+      </td></tr>`).join('');
+  }
+
+  function deletarOP(i){if(!confirm('Excluir?'))return;const ops=getOPs();ops.splice(i,1);saveOPs(ops);renderHist();}
+
+  function abrirModal(i){
+    const op=getOPs()[i];
+    document.getElementById('edit-idx').value=i;
+    document.getElementById('edit-codigo').value=op.codigo;
+    document.getElementById('edit-comp').value=op.comp;
+    document.getElementById('edit-qtd').value=op.qtd;
+    document.getElementById('edit-toco').value=op.toco||'';
+    document.getElementById('edit-data').value=op.data||'';
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function fecharModal(){document.getElementById('modal-overlay').classList.remove('open');}
+
+  function salvarEdicao(){
+    const i=parseInt(document.getElementById('edit-idx').value);
+    const codigo=document.getElementById('edit-codigo').value.trim();
+    const comp=parseFloat(document.getElementById('edit-comp').value);
+    const qtd=parseFloat(document.getElementById('edit-qtd').value);
+    const toco=parseFloat(document.getElementById('edit-toco').value)||0;
+    const data=document.getElementById('edit-data').value;
+    if(!codigo||!comp||!qtd){alert('Preencha todos os campos.');return;}
+    const pcsBarra=Math.floor(2700/comp);
+    const barrasTotal=Math.ceil(qtd/pcsBarra)+1;
+    const sobraKg=toco>0?((toco*barrasTotal)/1000).toFixed(3):'—';
+    const ops=getOPs();
+    ops[i]={data,codigo,comp,qtd,pcsBarra,barrasTotal,toco,sobraKg};
+    saveOPs(ops);fecharModal();renderHist();
+  }
+
+  document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)fecharModal();});
+</script>
+</body>
+</html>
